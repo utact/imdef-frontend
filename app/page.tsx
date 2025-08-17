@@ -1,9 +1,8 @@
 "use client";
-import Galaxy from "@/components/Galaxy";
+import Galaxy, { type GalaxyRef } from "@/components/Galaxy";
 import DialogueBox from "@/components/DialogueBox";
 import type React from "react";
-import { memo, useMemo } from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { verifyKeyword } from "@/lib/api";
 import {
   getDialogues,
@@ -11,8 +10,6 @@ import {
   SPACESHIP_IMAGES,
   shouldBlockKeyInput,
 } from "@/lib/dialogue-utils";
-
-const MemoizedGalaxy = memo(Galaxy);
 
 export default function HomePage() {
   const [warpIntensity, setWarpIntensity] = useState(0);
@@ -30,8 +27,10 @@ export default function HomePage() {
   const [isBanished, setIsBanished] = useState(false);
   const [showResetButton, setShowResetButton] = useState(false);
 
-  const dialogues = useMemo(() => getDialogues(isBanished), [isBanished]);
-  const dialoguesLength = useMemo(() => dialogues.length, [dialogues]);
+  const galaxyRef = useRef<GalaxyRef>(null);
+
+  const dialogues = getDialogues(isBanished);
+  const dialoguesLength = dialogues.length;
 
   const resetToFirstScreen = useCallback(() => {
     setShowSpaceship(false);
@@ -39,6 +38,7 @@ export default function HomePage() {
 
     setTimeout(() => {
       setWarpIntensity(50);
+      galaxyRef.current?.updateWarpIntensity(50);
 
       setTimeout(() => {
         const reductionStartTime = Date.now();
@@ -51,11 +51,13 @@ export default function HomePage() {
           const reducedIntensity = maxIntensity * (1 - easedProgress);
 
           setWarpIntensity(reducedIntensity);
+          galaxyRef.current?.updateWarpIntensity(reducedIntensity);
 
           if (reductionProgress < 1) {
             requestAnimationFrame(animateReduction);
           } else {
             setWarpIntensity(0);
+            galaxyRef.current?.updateWarpIntensity(0);
             setHideUI(false);
             setDialogueStep(0);
             setDisplayedText("");
@@ -68,8 +70,8 @@ export default function HomePage() {
           }
         };
         requestAnimationFrame(animateReduction);
-      }, 200);
-    }, 100);
+      }, 100);
+    }, 50);
   }, []);
 
   const resetSession = useCallback(() => {
@@ -116,7 +118,6 @@ export default function HomePage() {
       return;
     }
 
-    // Handle regular dialogue flow
     const dialogueActions = {
       [DIALOGUE_PHASES.FRIEND_CONFIRMATION]: () =>
         typeText("너의 이름은 뭐지?", () => {
@@ -297,7 +298,6 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error("Input processing error:", error);
-        // Fallback handling
         setIsProcessing(false);
       }
 
@@ -324,17 +324,22 @@ export default function HomePage() {
   const handleDiveInto = useCallback(() => {
     setHideUI(true);
 
+    setTimeout(() => {}, 50);
+
     const startTime = Date.now();
     const animateWarp = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / 3000, 1);
       const intensity = Math.pow(progress, 3) * 50;
       setWarpIntensity(intensity);
+      galaxyRef.current?.updateWarpIntensity(intensity);
 
       if (progress < 1) {
         requestAnimationFrame(animateWarp);
       } else {
-        setTimeout(() => setShowSpaceship(true), 100);
+        setTimeout(() => {
+          setShowSpaceship(true);
+        }, 100);
       }
     };
     requestAnimationFrame(animateWarp);
@@ -351,6 +356,7 @@ export default function HomePage() {
       const reducedIntensity = maxIntensity * (1 - easedProgress);
 
       setWarpIntensity(reducedIntensity);
+      galaxyRef.current?.updateWarpIntensity(reducedIntensity);
 
       if (reductionProgress < 1) {
         requestAnimationFrame(animateReduction);
@@ -360,7 +366,10 @@ export default function HomePage() {
   }, [warpIntensity]);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+    <div
+      className="min-h-screen !bg-black flex items-center justify-center relative overflow-hidden"
+      style={{ backgroundColor: "black" }}
+    >
       {showResetButton && (
         <button
           onClick={resetSession}
@@ -373,7 +382,8 @@ export default function HomePage() {
       )}
 
       <div className="absolute inset-0">
-        <MemoizedGalaxy
+        <Galaxy
+          ref={galaxyRef}
           mouseInteraction={false}
           mouseRepulsion={false}
           density={1.2}
@@ -384,7 +394,6 @@ export default function HomePage() {
           rotationSpeed={0.05}
           speed={0.8}
           transparent={false}
-          autoCenterRepulsion={warpIntensity}
           repulsionStrength={5}
         />
       </div>
