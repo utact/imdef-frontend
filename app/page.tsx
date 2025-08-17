@@ -103,6 +103,9 @@ export default function HomePage() {
   const handleNextDialogue = useCallback(() => {
     if (isBanished) {
       if (dialogueStep < dialoguesLength - 1) {
+        if (dialogueStep === 0) {
+          setSpaceshipImage(SPACESHIP_IMAGES.ANGRY);
+        }
         setDialogueStep((prev) => prev + 1);
         typeText(dialogues[dialogueStep + 1], () => setIsProcessing(false));
       } else {
