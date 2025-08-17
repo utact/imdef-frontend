@@ -28,6 +28,7 @@ export default function HomePage() {
   const [inputPhase, setInputPhase] = useState(DIALOGUE_PHASES.INITIAL);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isBanished, setIsBanished] = useState(false);
+  const [showResetButton, setShowResetButton] = useState(false);
 
   const dialogues = useMemo(() => getDialogues(isBanished), [isBanished]);
   const dialoguesLength = useMemo(() => dialogues.length, [dialogues]);
@@ -171,6 +172,23 @@ export default function HomePage() {
     if (banishmentStatus === "true") {
       setIsBanished(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyCombo = (event: KeyboardEvent) => {
+      if (
+        event.ctrlKey &&
+        event.altKey &&
+        event.shiftKey &&
+        event.code === "KeyR"
+      ) {
+        event.preventDefault();
+        setShowResetButton((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyCombo);
+    return () => window.removeEventListener("keydown", handleKeyCombo);
   }, []);
 
   useEffect(() => {
@@ -340,14 +358,16 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
-      <button
-        onClick={resetSession}
-        className={`fixed top-4 right-4 z-50 px-3 py-1 bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-400 text-xs rounded
-                   hover:bg-red-500/30 transition-colors`}
-        title="Reset Session (Dev)"
-      >
-        Reset
-      </button>
+      {showResetButton && (
+        <button
+          onClick={resetSession}
+          className={`fixed top-4 right-4 z-50 px-3 py-1 bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-400 text-xs rounded
+                     hover:bg-red-500/30 transition-colors`}
+          title="Reset Session (Dev)"
+        >
+          Reset
+        </button>
+      )}
 
       <div className="absolute inset-0">
         <MemoizedGalaxy
